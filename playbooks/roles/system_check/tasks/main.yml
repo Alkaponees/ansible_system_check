@@ -2,27 +2,27 @@
 - name: Check CPU info
   command: cat /proc/cpuinfo
   register: cpuinfo
-  changed: false
+  changed_when: false
 
 - name: Check Memory usage
   command: free -m
   register: meminfo
-  changed: false
+  changed_when: false
 
 - name: Check Disk usage
   command: df -h /
   register: diskinfo
-  changed: false
+  changed_when: false
 
 - name: Check System load
   command: uptime
   register: loadinfo
-  changed: false
+  changed_when: false
 
 - name: Check running services
   command: systemctl list-units --type=service --state=running
   register: servicesinfo
-  changed: false
+  changed_when: false
 
 - name: Create JSON report
   copy:
@@ -37,3 +37,4 @@
         "host": "{{ inventory_hostname }}",
         "checked_at": "{{ ansible_date_time.iso8601 }}"
       }
+
