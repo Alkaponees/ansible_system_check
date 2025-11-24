@@ -37,4 +37,11 @@
         "host": "{{ inventory_hostname }}",
         "checked_at": "{{ ansible_date_time.iso8601 }}"
       }
+- name: Create HTML report
+  template:
+    src: report.html.j2
+    dest: "{{ html_report_path }}"
 
+- name: Show HTML report location
+  debug:
+    msg: "HTML report generated: {{ html_report_path }}"

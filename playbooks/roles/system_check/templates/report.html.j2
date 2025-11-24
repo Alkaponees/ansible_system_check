@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Report - {{ inventory_hostname }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e5e7eb; padding: 20px; }
+    h1 { color: #38bdf8; }
+    h2 { color: #a5b4fc; border-bottom: 1px solid #1f2937; padding-bottom: 4px; }
+    pre { background: #020617; padding: 10px; border-radius: 8px; overflow-x: auto; }
+    .meta { font-size: 0.9rem; color: #9ca3af; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>System Report – {{ inventory_hostname }}</h1>
+  <div class="meta">
+    Generated at: {{ ansible_date_time.iso8601 }}
+  </div>
+
+  <h2>CPU Info</h2>
+  <pre>{{ cpuinfo.stdout }}</pre>
+
+  <h2>Memory (free -m)</h2>
+  <pre>{{ meminfo.stdout }}</pre>
+
+  <h2>Disk (df -h /)</h2>
+  <pre>{{ diskinfo.stdout }}</pre>
+
+  <h2>Load (uptime)</h2>
+  <pre>{{ loadinfo.stdout }}</pre>
+
+  <h2>Running Services</h2>
+  <pre>{{ servicesinfo.stdout }}</pre>
+</body>
+</html>
