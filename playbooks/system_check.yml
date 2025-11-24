@@ -2,7 +2,6 @@
 - name: System Health Check
   hosts: servers
   gather_facts: yes
-  become: yes
 
   vars:
     report_path: "/tmp/system_report.json"
