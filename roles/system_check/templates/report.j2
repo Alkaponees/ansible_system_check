@@ -1,0 +1,17 @@
+System Report for {{ inventory_hostname }}
+Generated at: {{ ansible_date_time.iso8601 }}
+
+CPU:
+{{ cpuinfo.stdout }}
+
+Memory:
+{{ meminfo.stdout }}
+
+Disk:
+{{ diskinfo.stdout }}
+
+Load:
+{{ loadinfo.stdout }}
+
+Running Services:
+{{ servicesinfo.stdout }}

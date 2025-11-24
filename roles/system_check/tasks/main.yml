@@ -1,0 +1,39 @@
+---
+- name: Check CPU info
+  command: cat /proc/cpuinfo
+  register: cpuinfo
+  changed: false
+
+- name: Check Memory usage
+  command: free -m
+  register: meminfo
+  changed: false
+
+- name: Check Disk usage
+  command: df -h /
+  register: diskinfo
+  changed: false
+
+- name: Check System load
+  command: uptime
+  register: loadinfo
+  changed: false
+
+- name: Check running services
+  command: systemctl list-units --type=service --state=running
+  register: servicesinfo
+  changed: false
+
+- name: Create JSON report
+  copy:
+    dest: "{{ report_path }}"
+    content: |
+      {
+        "cpuinfo": {{ cpuinfo.stdout | to_json }},
+        "memory": {{ meminfo.stdout | to_json }},
+        "disk": {{ diskinfo.stdout | to_json }},
+        "load": {{ loadinfo.stdout | to_json }},
+        "running_services": {{ servicesinfo.stdout | to_json }},
+        "host": "{{ inventory_hostname }}",
+        "checked_at": "{{ ansible_date_time.iso8601 }}"
+      }

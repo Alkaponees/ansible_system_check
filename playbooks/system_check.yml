@@ -1,0 +1,16 @@
+---
+- name: System Health Check
+  hosts: servers
+  gather_facts: yes
+  become: yes
+
+  vars:
+    report_path: "/tmp/system_report.json"
+
+  roles:
+    - system_check
+
+  tasks:
+    - name: Print location of report
+      debug:
+        msg: "System report saved to {{ report_path }}"
