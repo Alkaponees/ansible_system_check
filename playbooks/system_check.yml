@@ -5,7 +5,7 @@
 
   vars:
     report_path: "/tmp/system_report.json"
-    html_report_path: "/var/www/html/system-reports/system_report_{{ inventory_hostname }}_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.html"
+    html_report_path: "/var/www/html/system-reports/reports/system_report_{{ inventory_hostname }}_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.html"
 
   roles:
     - system_check
