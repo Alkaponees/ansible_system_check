@@ -1,0 +1,19 @@
+version: v1.0
+name: Ansible System Check
+
+# This ensures the job runs on YOUR self-hosted agent
+agent:
+  machine:
+    type: e2-standard-2
+    os_image: ubuntu2204
+
+blocks:
+  - name: Run System Check
+    task:
+      jobs:
+        - name: Execute Ansible Playbook
+          commands:
+            - checkout
+            - sudo apt update -y
+            - echo "Running playbook..."
+            - ansible-playbook -i inventory/hosts.ini playbooks/system_check.yml
