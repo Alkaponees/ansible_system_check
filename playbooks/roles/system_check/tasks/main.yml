@@ -25,6 +25,8 @@
   register: smart_status
   ignore_errors: true
   changed_when: false
+  when: ansible_facts['cmdline'] is defined and
+    lookup('ansible.builtin.first_found', ['smartctl'], errors='ignore') != ""
 
 - name: Check System load
   command: uptime
@@ -59,7 +61,7 @@
   changed_when: false
 
 - name: Check available updates
-  command: apt list --upgradable 2>/dev/null
+  shell: apt list --upgradable 2>/dev/null || true
   register: updates
   changed_when: false
 
