@@ -1,4 +1,5 @@
 ---
+# Gather system information from remote hosts
 - name: Check CPU info
   command: cat /proc/cpuinfo
   register: cpuinfo
@@ -14,6 +15,17 @@
   register: diskinfo
   changed_when: false
 
+- name: Check Inode usage
+  command: df -i
+  register: inodeinfo
+  changed_when: false
+
+- name: Check SMART health (if disk exists)
+  command: smartctl -H /dev/sda
+  register: smart_status
+  ignore_errors: true
+  changed_when: false
+
 - name: Check System load
   command: uptime
   register: loadinfo
@@ -24,24 +36,95 @@
   register: servicesinfo
   changed_when: false
 
+- name: Check network interfaces state
+  command: ip -s link
+  register: net_interfaces
+  changed_when: false
+
+# Safer DNS test without requiring dig
+- name: Check DNS resolution
+  command: getent hosts google.com
+  register: dns_test
+  changed_when: false
+
+- name: Check ping to internet
+  command: ping -c 3 8.8.8.8
+  register: ping_test
+  ignore_errors: true
+  changed_when: false
+
+- name: Check open ports
+  command: ss -tulpn
+  register: ports
+  changed_when: false
+
+- name: Check available updates
+  command: apt list --upgradable 2>/dev/null
+  register: updates
+  changed_when: false
+
+- name: Check syslog for recent errors
+  command: journalctl -p 3 -n 50
+  register: sys_errors
+  changed_when: false
+
+- name: Check authentication log
+  command: tail -n 50 /var/log/auth.log
+  register: auth_errors
+  changed_when: false
+
+#### LOCAL REPORT GENERATION ####
+
+- name: Ensure local system-reports directory exists
+  delegate_to: localhost
+  run_once: true
+  file:
+    path: "{{ html_report_path | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure local JSON directory exists
+  delegate_to: localhost
+  run_once: true
+  file:
+    path: "{{ report_path | dirname }}"
+    state: directory
+    mode: "0755"
+
 - name: Create JSON report
+  delegate_to: localhost
+  run_once: false
   copy:
     dest: "{{ report_path }}"
     content: |
       {
+        "host": "{{ inventory_hostname }}",
+        "checked_at": "{{ ansible_date_time.iso8601 }}",
         "cpuinfo": {{ cpuinfo.stdout | to_json }},
         "memory": {{ meminfo.stdout | to_json }},
         "disk": {{ diskinfo.stdout | to_json }},
+        "inode": {{ inodeinfo.stdout | to_json }},
+        "smart_health": {{ smart_status.stdout | to_json }},
         "load": {{ loadinfo.stdout | to_json }},
         "running_services": {{ servicesinfo.stdout | to_json }},
-        "host": "{{ inventory_hostname }}",
-        "checked_at": "{{ ansible_date_time.iso8601 }}"
+        "network_interfaces": {{ net_interfaces.stdout | to_json }},
+        "dns_resolution": {{ dns_test.stdout | to_json }},
+        "ping_test": {{ ping_test.stdout | to_json }},
+        "open_ports": {{ ports.stdout | to_json }},
+        "updates": {{ updates.stdout | to_json }},
+        "sys_errors": {{ sys_errors.stdout | to_json }},
+        "auth_errors": {{ auth_errors.stdout | to_json }}
       }
+
 - name: Create HTML report
+  delegate_to: localhost
+  run_once: false
   template:
     src: report.html.j2
     dest: "{{ html_report_path }}"
 
 - name: Show HTML report location
+  delegate_to: localhost
+  run_once: true
   debug:
-    msg: "HTML report generated: {{ html_report_path }}"
+    msg: "HTML report generated in {{ html_report_path }}"
