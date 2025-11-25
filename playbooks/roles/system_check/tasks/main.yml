@@ -70,9 +70,17 @@
   register: sys_errors
   changed_when: false
 
-- name: Check authentication log
-  command: tail -n 50 /var/log/auth.log
+- name: Check last authentication events (universal)
+  shell: |
+    if [ -f /var/log/auth.log ]; then
+      tail -n 50 /var/log/auth.log;
+    elif [ -f /var/log/secure ]; then
+      tail -n 50 /var/log/secure;
+    else
+      journalctl -u sshd -n 50;
+    fi
   register: auth_errors
+  ignore_errors: true
   changed_when: false
 
 #### LOCAL REPORT GENERATION ####
