@@ -1,0 +1,46 @@
+- name: Prepare backup directory
+  file:
+    path: "{{ backup_local_dir }}"
+    state: directory
+
+- name: Copy backup from remote server
+  ansible.builtin.command: >
+    scp -i {{ backup_source_key }} -o StrictHostKeyChecking=no
+    {{ backup_source_user }}@{{ backup_source_host }}:{{ backup_mongo_path }}
+    {{ backup_local_dir }}/backup.archive
+
+- name: Start clean MongoDB container
+  community.docker.docker_container:
+    name: mongo-restore-test
+    image: "{{ mongo_image }}"
+    state: started
+    recreate: true
+    published_ports:
+      - "{{ mongo_port }}:27017"
+    volumes:
+      - "{{ backup_local_dir }}:/backup"
+
+- name: Wait for MongoDB
+  wait_for:
+    port: "{{ mongo_port }}"
+    delay: 3
+    timeout: 40
+
+- name: Restore data
+  shell: >
+    docker exec mongo-restore-test
+    sh -c "mongorestore --archive=/backup/backup.archive --gzip"
+
+- name: Run test query
+  template:
+    src: mongo-test.js
+    dest: "{{ backup_local_dir }}/mongo-test.js"
+
+- name: Execute test script
+  shell: >
+    docker exec mongo-restore-test
+    mongosh /backup/mongo-test.js
+  register: mongo_test_output
+
+- debug:
+    var: mongo_test_output.stdout

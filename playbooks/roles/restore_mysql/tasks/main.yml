@@ -1,0 +1,49 @@
+- name: Prepare backup directory
+  file:
+    path: "{{ backup_local_dir }}"
+    state: directory
+
+- name: Copy backup from remote server
+  command: >
+    scp -i {{ backup_source_key }} -o StrictHostKeyChecking=no
+    {{ backup_source_user }}@{{ backup_source_host }}:{{ backup_mysql_path }}
+    {{ backup_local_dir }}/backup.sql.gz
+
+- name: Start clean MySQL container
+  community.docker.docker_container:
+    name: mysql-restore-test
+    image: "{{ mysql_image }}"
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+    published_ports:
+      - "{{ mysql_port }}:3306"
+    state: started
+    recreate: true
+
+- name: Wait for MySQL
+  wait_for:
+    port: "{{ mysql_port }}"
+    delay: 5
+    timeout: 40
+
+- name: Unpack MySQL backup
+  unarchive:
+    src: "{{ backup_local_dir }}/backup.sql.gz"
+    dest: "{{ backup_local_dir }}"
+    remote_src: true
+
+- name: Restore MySQL
+  shell: >
+    docker exec -i mysql-restore-test
+    mysql -uroot -p{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}
+    < {{ backup_local_dir }}/backup.sql
+
+- name: Test query
+  shell: >
+    docker exec mysql-restore-test
+    mysql -uroot -p{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}
+    -e "SELECT COUNT(*) FROM users;"
+  register: mysql_test_output
+
+- debug:
+    var: mysql_test_output.stdout

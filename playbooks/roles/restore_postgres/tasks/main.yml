@@ -1,0 +1,43 @@
+- name: Prepare backup directory
+  file:
+    path: "{{ backup_local_dir }}"
+    state: directory
+
+- name: Copy backup from remote server
+  command: >
+    scp -i {{ backup_source_key }} -o StrictHostKeyChecking=no
+    {{ backup_source_user }}@{{ backup_source_host }}:{{ backup_pg_path }}
+    {{ backup_local_dir }}/backup.dump
+
+- name: Start clean PostgreSQL container
+  community.docker.docker_container:
+    name: pg-restore-test
+    image: "{{ postgres_image }}"
+    env:
+      POSTGRES_PASSWORD: "{{ lookup('env', 'POSTGRES_PASSWORD') }}"
+    published_ports:
+      - "{{ postgres_port }}:5432"
+    state: started
+    recreate: true
+
+- name: Wait for PostgreSQL
+  wait_for:
+    port: "{{ postgres_port }}"
+    delay: 5
+    timeout: 60
+
+- name: Restore PostgreSQL
+  shell: >
+    docker exec -i pg-restore-test
+    pg_restore -U postgres -d postgres < /backup/backup.dump
+  args:
+    executable: /bin/bash
+
+- name: Run test query
+  shell: >
+    docker exec pg-restore-test
+    psql -U postgres -t -c "SELECT COUNT(*) FROM users;"
+  register: pg_test_output
+
+- debug:
+    var: pg_test_output.stdout
